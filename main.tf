@@ -1,28 +1,38 @@
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "3.52.0"
+    }
+  }
+}
+
 provider "aws" {
-  region = var.region
+  region = "us-west-2"
 }
 
-data "aws_ami" "redhat" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["redhat/images/hvm-ssd/ami-09d56f8956ab235b3*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["099720109477"] # Canonical
+resource "aws_iam_user" "iamuser" {
+  name = "s3readuser"
 }
 
-resource "aws_instance" "ubuntu" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = var.instance_type
+resource "aws_iam_access_key" "iamuserkey" {
+  user = aws_iam_user.iamuser.name
+}
 
-  tags = {
-    Name = var.instance_name
-  }
+resource "aws_iam_user_policy" "iam" {
+  name = "test"
+  user = aws_iam_user.iamuser.name
+
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "s3:*",
+            "Resource": "*"
+        }
+    ]
+}
+EOF
 }
